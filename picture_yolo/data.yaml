@@ -1,0 +1,19 @@
+
+#roboflow:
+#  license: CC BY 4.0
+#  project: fire-wrpgm
+#  url: https://universe.roboflow.com/custom-thxhn/fire-wrpgm/dataset/8
+#  version: 8
+#  workspace: custom-thxhn
+#test: datasets/test/images
+#train: datasets/fire-8/train/images
+#val: datasets/fire-8/valid/images
+
+path: ../datasets/fire-8 # dataset root dir
+train: images/train # train images (relative to 'path') 4 images
+val: images/val # val images (relative to 'path') 4 images
+test: # test images (optional)
+names:
+- Fire
+- default
+- smoke
