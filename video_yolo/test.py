@@ -1,22 +1,23 @@
 from ultralytics import YOLO
 from flask import *
 import flask
+
 '''
 YOLO官网https://docs.ultralytics.com/
-本地运行后，打开浏览器输入http://192.168.216.74:5151/test?content=摄像头id   
+本地运行后，打开浏览器输入http://192.168.216.74:5151/video_feed?content=摄像头id   
 0是电脑自带摄像头
 '''
 app = Flask(__name__)  # 实例化flask
 
-
 import cv2
 
-model = YOLO('yolov8n.pt')  #模型可以到https://docs.ultralytics.com/models/   自行下载
+model = YOLO('yolov8n.pt').to('cpu')  # 模型可以到https://docs.ultralytics.com/models/   自行下载
+
 
 # cv2.namedWindow('camera')
 def get_frame(input_text):
-
-    cap = cv2.VideoCapture(int(input_text)) #输入摄像机视频捕捉设备 id
+    # 输入摄像机视频捕捉设备 也可以识别本地文件种视频内容，需要注意的是本地摄像头需要的转换成int,本地视频则将int去掉
+    cap = cv2.VideoCapture(int(input_text))
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -29,7 +30,7 @@ def get_frame(input_text):
             for cls, xy in zip(cls_list, xyxy):
                 label = result.names[int(cls)]
                 cv2.rectangle(frame, (int(xy[0]), int(xy[1]), int(xy[2]), int(xy[3])), (0, 255, 0), 2)
-                cv2.putText(frame, label, (int(xy[0]), int(xy[1]) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(frame, label, (int(xy[0]), int(xy[1]) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 3)
         net, jpeg = cv2.imencode('.jpg', frame)
         frame = jpeg.tobytes()
         if frame is None:
@@ -41,6 +42,7 @@ def get_frame(input_text):
 @app.route('/video_feed', methods=['POST', 'GET'])  # 这个地址返回视频流响应
 def video_feed():
     input_text = flask.request.args.get('content')
+    # print(input_text)
     return Response(get_frame(input_text), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
