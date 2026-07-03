@@ -15,7 +15,7 @@ from ultralytics import YOLO
 
 # ================= 配置区 =================
 RTSP_SRC = "rtsp://192.168.216.60:8554/cam1"  # 唯一的源流，AI和显示共用同一帧
-RTSP_OUT = "rtsp://localhost:8554/yolo_out"  # 输出流
+RTSP_OUT = "rtsp://192.168.216.60:8554/yolo_out"  # 输出流
 AI_SIZE = 640  # AI推理正方形边长(letterbox目标尺寸)
 FPS = 30
 RTSP_TRANSPORT = "tcp"  # tcp比udp更抗丢包，避免花屏/马赛克
@@ -29,7 +29,7 @@ latest_hd_frame = None
 hd_lock = threading.Lock()
 stop_flag = threading.Event()
 
-model = YOLO("yolov10l.pt")
+model = YOLO("yolov10l.pt").to('cuda')
 
 
 def letterbox(img, new_size=640, color=(114, 114, 114)):
@@ -131,9 +131,8 @@ def ai_detect_thread():
         except Exception as e:
             print(f"⚠️ 推理出错: {e}")
             continue
-
         mapped = []
-        if results.boxes is not None:
+        if results is not None:
             for box in results.boxes:
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
                 conf = float(box.conf[0])
@@ -143,7 +142,9 @@ def ai_detect_thread():
                 y1 = (y1 - pad_top) / scale
                 x2 = (x2 - pad_left) / scale
                 y2 = (y2 - pad_top) / scale
-                mapped.append([x1, y1, x2, y2, cls, conf])
+                label= results.names[cls]
+
+                mapped.append([x1, y1, x2, y2,label, conf])
 
         with box_lock:
             latest_boxes = mapped
@@ -177,10 +178,10 @@ def hd_render_thread(ffmpeg_proc):
 
         for b in boxes:
             x1, y1, x2, y2 = int(b[0]), int(b[1]), int(b[2]), int(b[3])
-            cls, conf = int(b[4]), b[5]
+            cls, conf = b[4], b[5]
             color = (0, 255, 0) if conf > 0.6 else (0, 165, 255)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-            label = f"cls{cls} {conf:.2f}"
+            label = f"{cls} {conf:.2f}"
             cv2.putText(frame, label, (x1, max(0, y1 - 8)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
